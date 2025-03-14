@@ -2,15 +2,84 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { useRouter, useSearchParams } from "next/navigation"
+import { toast } from "sonner"
+import { signIn } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Mail, Lock, Eye, EyeOff } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
+import { type FormState, type FormValidation, useForm, v } from "react-form-toolkit"
+import { useAppSelector } from "@/lib/redux-hook"
+
+// Define the form data interface
+interface LoginFormProps {
+  email: string
+  password: string
+}
 
 export default function LoginPage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const { isLoading } = useAppSelector((state) => state.auth)
+
   const [showPassword, setShowPassword] = useState(false)
+
+  // Check for error from NextAuth
+  const error = searchParams.get("error")
+
+  // Define initial form state
+  const initialFormState: FormState<LoginFormProps> = {
+    email: "",
+    password: "",
+  }
+
+  // Define form validations
+  const formValidations: FormValidation = {
+    email: [v.isValidEmail, "Please enter a valid email address"],
+    password: [v.required, "Password is required"],
+  }
+
+  // Use the useForm hook to manage form state and validation
+  const { formState, onInputChange, handleSubmit, onBlur, errors, isFormValid, onResetForm } = useForm<LoginFormProps>(
+    initialFormState,
+    formValidations,
+  )
+
+  // Handle form submission
+  const onSubmit = async (formData: FormState<LoginFormProps>) => {
+    try {
+      const result = await signIn("credentials", {
+        email: formData.email,
+        password: formData.password,
+        redirect: false,
+      })
+
+      if (result?.error) {
+        toast.error("Login failed", {
+          description: "Invalid email or password",
+        })
+        return
+      }
+
+      toast.success("Login successful", {
+        description: "Welcome back!",
+      })
+
+      // router.push("/dashboard")
+    } catch (error) {
+      console.error("Login error:", error)
+      toast.error("Login failed", {
+        description: "An unexpected error occurred",
+      })
+    }
+  }
+
+  const handleGoogleSignIn = () => {
+    signIn("google", { callbackUrl: "/dashboard" })
+  }
 
   return (
     <div className="w-full max-w-md">
@@ -36,9 +105,21 @@ export default function LoginPage() {
           </div>
           <CardTitle className="text-center text-2xl font-bold">Welcome Back</CardTitle>
           <CardDescription className="text-center">Sign in to access your boards and tasks</CardDescription>
+
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded text-sm text-center mt-2">
+              {error === "CredentialsSignin" ? "Invalid email or password" : "An error occurred during sign in"}
+            </div>
+          )}
         </CardHeader>
         <CardContent className="space-y-4 pt-4">
-          <Button variant="outline" className="w-full py-5 relative font-normal text-base" type="button">
+          <Button
+            variant="outline"
+            className="w-full py-5 relative font-normal text-base"
+            type="button"
+            onClick={handleGoogleSignIn}
+            disabled={isLoading}
+          >
             <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center">
               <svg width="20" height="20" viewBox="0 0 24 24">
                 <path
@@ -72,62 +153,116 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="email" className="text-sm font-medium">
-              Email
-            </Label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-              <Input
-                id="email"
-                type="email"
-                placeholder="your.email@example.com"
-                className="pl-10 transition-all focus:ring-2 focus:ring-primary/20"
-                required
-              />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="password" className="text-sm font-medium">
-                Password
-              </Label>
-              <Link
-                href="/auth/forgot-password"
-                className="text-xs text-primary hover:text-primary/80 hover:underline transition-colors"
-              >
-                Forgot password?
-              </Link>
-            </div>
-            <div className="relative">
-              <Lock className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-              <Input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                className="pl-10 pr-10 transition-all focus:ring-2 focus:ring-primary/20"
-                required
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? (
-                  <EyeOff className="h-5 w-5 text-muted-foreground" />
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-medium">
+                  Email
+                </Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="your.email@example.com"
+                    className={`pl-10 transition-all focus:ring-2 focus:ring-primary/20 ${errors.email ? "border-red-500" : ""}`}
+                    value={formState.email}
+                    onChange={onInputChange}
+                    onBlur={onBlur}
+                    disabled={isLoading}
+                  />
+                </div>
+                {errors.email ? (
+                  <p className="text-xs mt-1 text-red-500">{errors.email}</p>
                 ) : (
-                  <Eye className="h-5 w-5 text-muted-foreground" />
+                  <p className="text-xs mt-1 text-muted-foreground">Enter your email address</p>
                 )}
-                <span className="sr-only">{showPassword ? "Hide password" : "Show password"}</span>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password" className="text-sm font-medium">
+                    Password
+                  </Label>
+                  <Link
+                    href="/auth/forgot-password"
+                    className="text-xs text-primary hover:text-primary/80 hover:underline transition-colors"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    className={`pl-10 pr-10 transition-all focus:ring-2 focus:ring-primary/20 ${errors.password ? "border-red-500" : ""}`}
+                    value={formState.password}
+                    onChange={onInputChange}
+                    onBlur={onBlur}
+                    disabled={isLoading}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowPassword(!showPassword)}
+                    disabled={isLoading}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5 text-muted-foreground" />
+                    ) : (
+                      <Eye className="h-5 w-5 text-muted-foreground" />
+                    )}
+                    <span className="sr-only">{showPassword ? "Hide password" : "Show password"}</span>
+                  </Button>
+                </div>
+                {errors.password ? (
+                  <p className="text-xs mt-1 text-red-500">{errors.password}</p>
+                ) : (
+                  <p className="text-xs mt-1 text-muted-foreground">Enter your password</p>
+                )}
+              </div>
+
+              <Button
+                className="w-full py-5 text-base font-medium shadow-md hover:shadow-lg transition-all mt-4"
+                type="submit"
+                disabled={!isFormValid || isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <svg
+                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Signing in...
+                  </>
+                ) : (
+                  "Sign In"
+                )}
               </Button>
             </div>
-          </div>
+          </form>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4 pb-6">
-          <Button className="w-full py-5 text-base font-medium shadow-md hover:shadow-lg transition-all" type="submit">
-            Sign In
-          </Button>
           <div className="text-center text-sm">
             Don&apos;t have an account?{" "}
             <Link
