@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { signIn } from "next-auth/react"
 import { Button } from "@/components/ui/button"
@@ -21,14 +20,10 @@ interface LoginFormProps {
 }
 
 export default function LoginPage() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
   const { isLoading } = useAppSelector((state) => state.auth)
 
   const [showPassword, setShowPassword] = useState(false)
 
-  // Check for error from NextAuth
-  const error = searchParams.get("error")
 
   // Define initial form state
   const initialFormState: FormState<LoginFormProps> = {
@@ -43,7 +38,7 @@ export default function LoginPage() {
   }
 
   // Use the useForm hook to manage form state and validation
-  const { formState, onInputChange, handleSubmit, onBlur, errors, isFormValid, onResetForm } = useForm<LoginFormProps>(
+  const { formState, onInputChange, handleSubmit, onBlur, errors, isFormValid } = useForm<LoginFormProps>(
     initialFormState,
     formValidations,
   )
@@ -106,11 +101,6 @@ export default function LoginPage() {
           <CardTitle className="text-center text-2xl font-bold">Welcome Back</CardTitle>
           <CardDescription className="text-center">Sign in to access your boards and tasks</CardDescription>
 
-          {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded text-sm text-center mt-2">
-              {error === "CredentialsSignin" ? "Invalid email or password" : "An error occurred during sign in"}
-            </div>
-          )}
         </CardHeader>
         <CardContent className="space-y-4 pt-4">
           <Button

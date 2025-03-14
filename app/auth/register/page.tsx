@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -26,7 +25,6 @@ interface RegisterFormProps {
 }
 
 export default function RegisterPage() {
-  const router = useRouter()
   const { isLoading } = useAppSelector((state) => state.auth)
   const registerMutation = useRegisterUser()
 
@@ -233,7 +231,7 @@ export default function RegisterPage() {
                 {errors.email ? (
                   <p className="text-xs mt-1 text-red-500">{errors.email}</p>
                 ) : (
-                  <p className="text-xs mt-1 text-muted-foreground">We'll never share your email with anyone else</p>
+                  <p className="text-xs mt-1 text-muted-foreground">{"We'll never share your email with anyone else"}</p>
                 )}
               </div>
               <div className="space-y-2">
