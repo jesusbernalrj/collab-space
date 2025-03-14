@@ -33,7 +33,7 @@ export function Sidebar({ className }: SidebarProps) {
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [workspacesExpanded, setWorkspacesExpanded] = useState(true)
   const [starredExpanded, setStarredExpanded] = useState(true)
-  gi 
+
   const toggleSidebar = () => {
     setIsCollapsed(!isCollapsed)
   }
