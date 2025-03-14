@@ -39,23 +39,7 @@ export const prisma =
     }
   })
 
-// Middleware para manejar errores de prepared statement
-prisma.$use(async (params, next) => {
-  try {
-    return await next(params)
-  } catch (error: any) {
-    // Si es un error de prepared statement, intentar una vez más
-    if (error.message && error.message.includes('prepared statement')) {
-      console.log('Reintentando operación de Prisma después de error de prepared statement')
-      
-      // Esperar un momento antes de reintentar
-      await new Promise(resolve => setTimeout(resolve, 100))
-      
-      return await next(params)
-    }
-    throw error
-  }
-})
+
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma
 
